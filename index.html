@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LocoPilot — Simple Compartment Dashboard</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#f4f7fb;color:#0b2545}
+    h1{font-size:20px;margin:0 0 12px}
+    .train{display:flex;gap:8px;align-items:flex-end}
+    .coach{width:90px;height:120px;border-radius:8px;border:2px solid #cfd8e6;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(11,37,69,0.06)}
+    .label{font-weight:700;margin-bottom:6px}
+    .status{font-size:13px;padding:6px 8px;border-radius:12px}
+    .safe{background:#e6f7e9;color:#0a6b28}
+    .busy{background:#fff7e0;color:#8a5b00}
+    .full{background:#ffe6e6;color:#8a1e1e}
+
+    .controls{margin-top:16px;display:flex;gap:8px;align-items:center}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#0b63ff;color:white;cursor:pointer}
+    button.secondary{background:#6b7280}
+    .alert{margin-top:14px;padding:10px;border-radius:8px;background:#fff3f3;color:#8a1e1e;border:1px solid #ffd6d6;display:none}
+    .small{font-size:13px;color:#51607a}
+    footer{margin-top:18px;font-size:13px;color:#51607a}
+  </style>
+</head>
+<body>
+  <h1>Simple LocoPilot Dashboard — General Coaches (Non-reserved)</h1>
+  <div class="small">This mockup shows live occupancy for general compartments. If a coach becomes <strong>Full</strong>, the system suggests adding an extra coach at the next station.</div>
+
+  <div class="train" id="train"></div>
+
+  <div class="controls">
+    <button id="simulate">Simulate Random Update</button>
+    <button class="secondary" id="makeFull">Mark Coach 3 as Full</button>
+    <button class="secondary" id="reset">Reset</button>
+  </div>
+
+  <div class="alert" id="alertBox"></div>
+
+  <footer>Note: this is a simple front-end mockup. Replace sensor input with real IoT data in production.</footer>
+
+  <script>
+    // Simple data model for 6 coaches
+    const coaches = [
+      { id: 1, name: 'C1', count: 20, capacity: 80 },
+      { id: 2, name: 'C2', count: 35, capacity: 80 },
+      { id: 3, name: 'C3', count: 78, capacity: 80 },
+      { id: 4, name: 'C4', count: 15, capacity: 80 },
+      { id: 5, name: 'C5', count: 60, capacity: 80 },
+      { id: 6, name: 'C6', count: 10, capacity: 80 }
+    ];
+
+    const trainEl = document.getElementById('train');
+    const alertBox = document.getElementById('alertBox');
+
+    function render(){
+      trainEl.innerHTML = '';
+      coaches.forEach((c, idx) => {
+        const el = document.createElement('div');
+        el.className = 'coach';
+        el.innerHTML = `
+          <div class="label">${c.name}</div>
+          <div class="small">${c.count} / ${c.capacity}</div>
+          <div class="status" id="status-${c.id}"></div>
+        `;
+        trainEl.appendChild(el);
+        updateStatus(c);
+      });
+    }
+
+    function updateStatus(c){
+      const statusEl = document.getElementById('status-' + c.id);
+      if(!statusEl) return;
+      const ratio = c.count / c.capacity;
+      if(ratio >= 1){
+        statusEl.textContent = 'FULL';
+        statusEl.className = 'status full';
+      } else if(ratio >= 0.7){
+        statusEl.textContent = 'BUSY';
+        statusEl.className = 'status busy';
+      } else {
+        statusEl.textContent = 'SAFE';
+        statusEl.className = 'status safe';
+      }
+    }
+
+    function checkForAlerts(){
+      const full = coaches.find(c => c.count >= c.capacity);
+      if(full){
+        alertBox.style.display = 'block';
+        alertBox.innerHTML = `<strong>Alert:</strong> ${full.name} is FULL (${full.count}/${full.capacity}).<br>Suggestion: <em>Prepare an extra general coach to attach at the next station.</em>`;
+        // optionally flash or beep
+        window.navigator.vibrate && window.navigator.vibrate(200);
+      } else {
+        alertBox.style.display = 'none';
+        alertBox.innerHTML = '';
+      }
+    }
+
+    // Simulate sensors updating counts randomly
+    function simulateRandomUpdate(){
+      coaches.forEach(c => {
+        // small random change
+        const delta = Math.floor(Math.random()*9) - 3; // -3..+5
+        c.count = Math.max(0, c.count + delta);
+        if(c.count > c.capacity + 20) c.count = c.capacity + 20; // cap unrealistic
+        updateStatus(c);
+      });
+      checkForAlerts();
+    }
+
+    document.getElementById('simulate').addEventListener('click', () => {
+      simulateRandomUpdate();
+    });
+
+    document.getElementById('makeFull').addEventListener('click', () => {
+      const c = coaches[2]; // coach 3
+      c.count = c.capacity; // mark full
+      updateStatus(c);
+      checkForAlerts();
+    });
+
+    document.getElementById('reset').addEventListener('click', ()=>{
+      coaches[0].count=20;coaches[1].count=35;coaches[2].count=78;coaches[3].count=15;coaches[4].count=60;coaches[5].count=10;render();checkForAlerts();
+    });
+
+    // initial render
+    render();
+    checkForAlerts();
+
+    // optional: auto-simulate every 7s (comment out in production)
+    // setInterval(simulateRandomUpdate, 7000);
+  </script>
+</body>
+</html>
