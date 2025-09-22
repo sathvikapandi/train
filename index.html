@@ -5,33 +5,91 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LocoPilot — Smart Compartment Dashboard</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:18px;background:#f4f7fb;color:#0b2545}
-    h1{font-size:20px;margin:0 0 12px}
-    .train{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+    body{
+      font-family:system-ui,Segoe UI,Roboto,Arial;
+      margin:18px;
+      background:#f4f7fb;
+      color:#0b2545;
+    }
+    h1{font-size:20px;margin:0 0 12px;text-align:center}
+    .small{font-size:13px;color:#51607a;margin-bottom:12px;text-align:center}
 
-    .coach{width:110px;height:150px;border-radius:8px;border:2px solid #cfd8e6;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(11,37,69,0.06);padding:8px}
+    /* Train fixed at center */
+    .trainWrapper{
+      display:flex;
+      justify-content:center; /* centers horizontally */
+      margin-top:20px;
+    }
+    .train{
+      display:flex;
+      gap:8px;
+      align-items:flex-end;
+      flex-wrap:nowrap;
+    }
+
+    /* Engine style */
+    .engine{
+      width:120px;
+      height:160px;
+      border-radius:8px;
+      background:linear-gradient(to bottom,#60a5fa,#fff);
+      border:2px solid #1d4ed8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+      color:#0b2545;
+      box-shadow:0 6px 14px rgba(11,37,69,0.08);
+      flex-shrink:0;
+    }
+
+    /* Coach style */
+    .coach{
+      width:110px;
+      height:150px;
+      border-radius:8px;
+      border:2px solid #cfd8e6;
+      background:linear-gradient(to bottom,#e0f2fe,#fff);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 6px 14px rgba(11,37,69,0.06);
+      padding:8px;
+      flex-shrink:0;
+    }
     .label{font-weight:700;margin-bottom:6px}
     .status{font-size:13px;padding:4px 8px;border-radius:12px;margin-top:6px}
     .safe{background:#e6f7e9;color:#0a6b28}
     .busy{background:#fff7e0;color:#8a5b00}
     .full{background:#ffe6e6;color:#8a1e1e}
 
-    .barContainer{width:90%;height:10px;background:#e5e7eb;border-radius:6px;overflow:hidden;margin-top:8px}
+    .barContainer{
+      width:90%;
+      height:10px;
+      background:#e5e7eb;
+      border-radius:6px;
+      overflow:hidden;
+      margin-top:8px
+    }
     .barFill{height:100%;width:0%;transition:width 0.6s ease}
 
-    .controls{margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .controls{margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
     button{padding:8px 12px;border-radius:8px;border:0;background:#0b63ff;color:white;cursor:pointer}
     button.secondary{background:#6b7280}
-    .alert{margin-top:14px;padding:10px;border-radius:8px;background:#fff3f3;color:#8a1e1e;border:1px solid #ffd6d6;display:none}
-    .small{font-size:13px;color:#51607a}
-    footer{margin-top:18px;font-size:13px;color:#51607a}
+    .alert{margin-top:14px;padding:10px;border-radius:8px;background:#fff3f3;color:#8a1e1e;border:1px solid #ffd6d6;display:none;text-align:center}
+    footer{margin-top:18px;font-size:13px;color:#51607a;text-align:center}
   </style>
 </head>
 <body>
+  
   <h1>Smart LocoPilot Dashboard — General Coaches (Non-reserved)</h1>
   <div class="small">Now with visual occupancy bars and auto-coach addition when a coach is <strong>FULL</strong>.</div>
 
-  <div class="train" id="train"></div>
+  <!-- Train fixed at center -->
+  <div class="trainWrapper">
+    <div class="train" id="train"></div>
+  </div>
 
   <div class="controls">
     <button id="simulate">Simulate Random Update</button>
@@ -44,7 +102,6 @@
   <footer>Note: this is a demo. Replace simulated counts with real IoT sensor inputs.</footer>
 
   <script>
-    // Simple data model for 6 coaches
     let coaches = [
       { id: 1, name: 'C1', count: 20, capacity: 80 },
       { id: 2, name: 'C2', count: 35, capacity: 80 },
@@ -59,6 +116,14 @@
 
     function render(){
       trainEl.innerHTML = '';
+
+      // Engine first
+      const engine = document.createElement('div');
+      engine.className = 'engine';
+      engine.textContent = 'ENGINE';
+      trainEl.appendChild(engine);
+
+      // Coaches
       coaches.forEach((c) => {
         const el = document.createElement('div');
         el.className = 'coach';
@@ -80,12 +145,9 @@
 
       const ratio = c.count / c.capacity;
       const percentage = Math.min(100, Math.round(ratio*100));
-
-      // update bar
       barFill.style.width = percentage + '%';
       barFill.style.background = ratio >= 1 ? '#dc2626' : (ratio >= 0.7 ? '#d97706' : '#16a34a');
 
-      // update status
       if(ratio >= 1){
         statusEl.textContent = 'FULL';
         statusEl.className = 'status full';
@@ -104,8 +166,6 @@
         alertBox.style.display = 'block';
         alertBox.innerHTML = `<strong>Alert:</strong> ${full.name} is FULL (${full.count}/${full.capacity}).<br>Adding an <em>extra coach</em> at the end...`;
         window.navigator.vibrate && window.navigator.vibrate(200);
-
-        // Auto-add a new coach if not already added
         if(!coaches.find(c => c.name === 'C' + (coaches.length))){
           const newCoachId = coaches.length + 1;
           coaches.push({ id: newCoachId, name: 'C' + newCoachId, count: 0, capacity: 80 });
@@ -119,7 +179,7 @@
 
     function simulateRandomUpdate(){
       coaches.forEach(c => {
-        const delta = Math.floor(Math.random()*9) - 3; // -3..+5
+        const delta = Math.floor(Math.random()*9) - 3;
         c.count = Math.max(0, c.count + delta);
         if(c.count > c.capacity + 20) c.count = c.capacity + 20;
         updateStatus(c);
@@ -127,17 +187,13 @@
       checkForAlerts();
     }
 
-    document.getElementById('simulate').addEventListener('click', () => {
-      simulateRandomUpdate();
-    });
-
+    document.getElementById('simulate').addEventListener('click', () => simulateRandomUpdate());
     document.getElementById('makeFull').addEventListener('click', () => {
-      const c = coaches[2]; // coach 3
-      c.count = c.capacity; // mark full
+      const c = coaches[2];
+      c.count = c.capacity;
       updateStatus(c);
       checkForAlerts();
     });
-
     document.getElementById('reset').addEventListener('click', ()=>{
       coaches = [
         { id: 1, name: 'C1', count: 20, capacity: 80 },
@@ -151,9 +207,15 @@
       checkForAlerts();
     });
 
-    // initial render
     render();
     checkForAlerts();
   </script>
+
+
+<div style="display:flex; justify-content:center;">
+  <img src="C:\Users\sathv\OneDrive\Desktop\DEVEOPS\logoooooo.png"width="300">
+</div>
+
 </body>
 </html>
+
